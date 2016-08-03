@@ -5,7 +5,7 @@ import datetime
 
 
 class Cluster:
-    def __init__(self,access_key_id='',secret_key_id='', ami='ami-18a16e78',key='',instance_type='t1.micro',region='us-west-2'):
+    def __init__(self, access_key_id='', secret_key_id='', ami='ami-18a16e78', key='', instance_type='t1.micro', region='us-west-2'):
         self.dryrun = False
         self.fleet_id = ''
         self.az = ''
@@ -24,10 +24,11 @@ class Cluster:
         self.key = key
         self.config = config = {
             #'UserData':self.data,
-            'ImageId':self.ami,
-            'InstanceType':self.instance_type,
-            'KeyName':self.key
+            'ImageId': self.ami,
+            'InstanceType': self.instance_type,
+            'KeyName': self.key
         }
+
     def _get_fleet_role_arn(self):
         iam = boto3.resource('iam',
                              region_name=self.region,
@@ -45,12 +46,12 @@ class Cluster:
                                                        EndTime=datetime.datetime.now(),
                                                        InstanceTypes=[self.instance_type],
                                                        ProductDescriptions=['Linux/UNIX'])
-        av_zones = {estimate['AvailabilityZone']:float(estimate['SpotPrice']) for estimate in data['SpotPriceHistory']}
-        self.az = max(av_zones,key=lambda x: av_zones[x])
+        av_zones = {estimate['AvailabilityZone']: float(estimate['SpotPrice']) for estimate in data['SpotPriceHistory']}
+        self.az = max(av_zones, key=lambda x: av_zones[x])
         max_price = av_zones[self.az]
         return max_price+0.001
 
-    def request_spot_instance(self,n=1):
+    def request_spot_instance(self, n=1):
         estimated_price = str(self._get_spot_price_estimate())
         instance_count = n
         return self.client.request_spot_instances(
@@ -62,22 +63,22 @@ class Cluster:
             LaunchSpecification=self.config
         )
 
-    def request_spot_fleet(self,n=1):
+    def request_spot_fleet(self, n=1):
         estimated_price = str(self._get_spot_price_estimate())
         instance_count = n
         spotfleetrequestconfig = {
             'ClientToken': str(uuid.uuid1()),
             'SpotPrice': estimated_price,
             'TargetCapacity': n,
-            'LaunchSpecifications':[self.config],
+            'LaunchSpecifications': [self.config],
             'TerminateInstancesWithExpiration': False,
             'IamFleetRole': self._get_fleet_role_arn()
         }
         request = self.client.request_spot_fleet(DryRun=self.dryrun,
-                                              SpotFleetRequestConfig=spotfleetrequestconfig)
+                                                 SpotFleetRequestConfig=spotfleetrequestconfig)
         return request['SpotFleetRequestId']
 
-    def cancel_fleet_request(self,fleet_ids,termination=True):
+    def cancel_fleet_request(self, fleet_ids, termination=True):
 
         return self.client.cancel_spot_fleet_requests(
             DryRun=False,
@@ -87,6 +88,7 @@ class Cluster:
 
     def check_instance(self):
         pass
-    def launch(self,n=1):
+
+    def launch(self, n=1):
         self.fleet_id = self.request_spot_fleet(n)
 
